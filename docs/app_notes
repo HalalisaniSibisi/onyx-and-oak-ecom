@@ -1,0 +1,53 @@
+# Application Layer Notes
+ 
+Decisions and reasoning for the ASP.NET MVC application layer, logged as
+they're made — same purpose as docs/design-decisions.md, but for the app
+rather than the schema.
+ 
+## Data access: Dapper (not Entity Framework)
+ 
+**Considered:** EF Core vs. Dapper vs. raw ADO.NET.
+ 
+**Chosen: Dapper.**
+ 
+**Why:**
+- Every query stays visible and hand-written, same as the schema work —
+  nothing about the composite OrderDetails key or the PriceAtTimeOfOrder
+  design gets hidden behind ORM convention or auto-generated migrations.
+- Removes ADO.NET's worst boilerplate (manual `SqlDataReader` → object
+  mapping) without hiding the SQL itself, unlike EF's LINQ-to-SQL layer.
+- Reinforces skills already built today rather than introducing a new
+  abstraction on top of them.
+- Matches the ADO.NET approach already used in PrimeLife Phase 2/3, so the
+  patterns transfer directly.
+**Trade-off accepted:** more manual work per CRUD operation than EF Core
+would require (no auto-scaffolded controllers/views from a DbContext).
+EF Core remains a reasonable thing to pick up separately later, since it's
+common in the job market — but that's a different, later goal from this
+project's purpose of reinforcing relational design.
+ 
+## Auth approach
+ 
+**Chosen: hand-rolled login against Users.HashedPassword** (not ASP.NET
+Identity).
+ 
+**Why:** Identity brings its own user/role table conventions that would
+conflict with the Users/Admin/Customers subtype pattern already built —
+using it would mean either fighting its schema assumptions or duplicating
+identity data across two systems. Hand-rolling keeps auth working directly
+against the schema as designed.
+ 
+**Plan (not yet implemented):**
+1. Hash passwords with `BCrypt.Net-Next` (NuGet) — handles salting
+   automatically, avoids hand-rolling hashing itself.
+2. Login flow: look up user by email in Users → verify password with
+   `BCrypt.Verify` → check which subtype table (Customers or Admin) has a
+   matching UserID to determine role → store UserID + Role in session.
+3. Session via `HttpContext.Session` — simplest option for MVC, no extra
+   packages. Store UserID/Role after login, check `Session["UserID"]` to
+   gate access to authenticated actions.
+**Status:** decision made, implementation not started.
+ 
+## Controller structure
+ 
+TBD.
