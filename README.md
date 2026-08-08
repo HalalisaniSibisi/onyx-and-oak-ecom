@@ -1,23 +1,27 @@
-# E-Commerce Practice Database
+# E-Commerce CRUD Application
 
-A standalone practice project modeling a single-vendor B2C e-commerce backend in SQL Server. Built as a Saturday coding exercise to practice relational database design: supertype/subtype modeling, many-to-many resolution via a junction table, and composite keys.
+A full C# ASP.NET MVC CRUD application modeling a single-vendor B2C e-commerce backend, backed by SQL Server. Started as a database-design exercise (relational modeling: supertype/subtype patterns, many-to-many resolution via a junction table, composite keys) and is being built out into a complete web application on top of that schema.
 
 ## Project Type
 
-Single-vendor B2C retail (one store, own inventory, direct-to-customer). No marketplace, subscription, or multi-seller complexity — kept intentionally simple to focus on core relational design patterns.
+Single-vendor B2C retail (one store, own inventory, direct-to-customer). No marketplace, subscription, or multi-seller complexity — the schema is kept intentionally simple so the application layer (auth, controllers, views, CRUD flows) stays the focus.
+
+**Stack:** C# / ASP.NET MVC / SQL Server / Dapper for data access.
 
 ## Structure
 
 ```
 ecommerce-practice-db/
 ├── README.md
+├── src/                  -- ASP.NET MVC application (Models, Views, Controllers)
 ├── sql/
-│   ├── schema.sql       -- CREATE TABLE statements
-│   ├── seed_data.sql    -- sample data (15 users, 12 customers, 3 admins, 10 products, 15 orders)
-│   └── queries.sql      -- reporting queries (total spend per customer, top-selling products)
+│   ├── schema.sql        -- CREATE TABLE statements
+│   ├── seed_data.sql     -- sample data (15 users, 12 customers, 3 admins, 10 products, 15 orders)
+│   └── queries.sql       -- reporting queries (total spend per customer, top-selling products)
 └── docs/
-    ├── erd.md               -- entity relationship diagram (text form)
-    └── design-decisions.md  -- reasoning behind key design choices
+    ├── erd.md                -- entity relationship diagram (text form)
+    ├── design-decisions.md   -- reasoning behind key database design choices
+    └── app-notes.md          -- notes on the MVC layer as it's built (auth flow, controller decisions, etc.)
 ```
 
 ## Entities
@@ -41,6 +45,19 @@ Full reasoning in `docs/design-decisions.md`.
 
 ## How to Run
 
+### Database
 1. Run `sql/schema.sql` against a SQL Server database (tables must be created in this order due to FK dependencies: Users → Admin/Customers → Orders → Inventory → OrderDetails).
 2. Run `sql/seed_data.sql` to populate sample data.
 3. Run queries from `sql/queries.sql` to explore.
+
+### Application
+Setup instructions will be added here once the ASP.NET MVC project is scaffolded (connection string config, migrations if using Entity Framework, etc.).
+
+## Roadmap
+
+- [x] Schema design and seed data
+- [x] Reporting queries (customer spend, top sellers)
+- [ ] Scaffold ASP.NET MVC project
+- [ ] Auth (login against Users table, role-based access via Admin/Customers subtype)
+- [ ] Customer-facing CRUD (browse Inventory, place Orders)
+- [ ] Admin-facing CRUD (manage Inventory, view all Orders)
