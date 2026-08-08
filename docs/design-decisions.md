@@ -1,14 +1,73 @@
-# Design Decisions
+Claude finished the response
 
+Good call — hand-rolled auth matches your schema exactly as designed, and it's the more educational path anyway (ASP.NET Identity brings its own user/role table conventions that would fight with the subtype pattern you already built). Here's what "simplest and straightforward" actually looks like, broken into the pieces that matter:
+
+1. Hashing — never store or compare plain text passwords
+Use BCrypt.Net-Next (a NuGet package) rather than rolling your own hashing algorithm. It handles salting automatically, which is the part people get wrong when they hand-roll this from scratch.
+csharp
+
+// On signup:
+string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plainTextPassword);
+// Store hashedPassword in Users.HashedPassword
+
+// On login:
+bool isValid = BCrypt.Net.BCrypt.Verify(enteredPassword, storedHashFromDb);
+
+2. Login flow — check credentials, then figure out role
+
+    Look up the user by email in Users.
+    Verify the password with BCrypt.Verify.
+    If valid, check which subtype table has a matching UserID — Customers or Admin — that tells you the role (this is the self-enforcing design from earlier, paying off here).
+    Store the result in an ASP.NET session or cookie so subsequent requests know who's logged in.
+
+3. Session — simplest option for MVC
+HttpContext.Session is the lowest-friction choice: store UserID and Role in session after login, check Session["UserID"] != null in a base controller or action filter to gate access. No extra packages, no cookie-signing complexity — good fit for a learning project before you'd reach for something heavier like JWT.
+
+Want me to log this as the decision in docs/app-notes.md the way we did for Dapper, and sketch the actual Login controller action next?
+
+not yet I just want to update the folder for next step
+
+Got it — let's just log the decision so the docs stay in sync, then leave the actual controller code for next time.
+Log the auth decision in app-notes.md
+
+Logged. docs/app-notes.md now has the auth decision and plan written down, marked as not-yet-implemented so it's clear where you left off. Pull it into your synced folder and commit whenever you're ready — good stopping point for today.
+
+I cant see the files
+
+Ah, that makes sense — everything I've been editing lives in my own sandbox (/home/claude), which isn't visible to you at all. I should have surfaced the files properly instead of just editing them silently. Let me fix that now — I'll place the updated files where you can actually access and download them, without zipping.
+Ran a command, read a file
+
+All 7 files should now show up individually — the two updated docs (README.md, app-notes.md) plus the rest for completeness. Since they're separate files rather than a zip, you'll need to drop README.md and docs/app-notes.md into the matching spots in your local synced folder (overwriting the old versions), then commit through GitHub Desktop as usual.
+Readme
+Document · MD 
+App notes
+Document · MD 
+Design decisions
+Document · MD 
+Erd
+Document · MD 
+Schema
+Code · SQL 
+Seed data
+Code · SQL 
+Queries
+Code · SQL 
+Want to be notified when Claude responds?
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Design decisions · MD
+# Design Decisions
+ 
 Notes on the reasoning behind key structural choices in this schema — useful
 for explaining the design later, or revisiting the thinking on a future project.
-
+ 
 ## 1. Users / Admin / Customers subtype split
-
+ 
 **Problem:** Admin and Customers both need authentication (login), but each
 also has role-specific data that doesn't apply to the other (Admin has
 PermissionLevel; Customers have ShippingAddress, ContactNumber, etc.).
-
+ 
 **Options considered:**
 - One single table with all columns for every role (rejected — lots of
   nullable columns that don't apply depending on role).
@@ -19,36 +78,35 @@ PermissionLevel; Customers have ShippingAddress, ContactNumber, etc.).
 - **Chosen: supertype/subtype split.** Users holds shared login data.
   Customers and Admin each hold only their role-specific columns, linked
   1:1 back to Users by reusing UserID as both PK and FK.
-
 **Why this wins:** role is *implied* by which subtype table has a matching
 row — there's no redundant flag that could ever contradict reality. It's
 structurally impossible to have an Admin row for someone not meant to be
 an admin.
-
+ 
 **Trade-off accepted:** looking up "what role does this user have" requires
 a join or an EXISTS check rather than a single column read. Acceptable at
 this scale (a handful of users, no performance pressure).
-
+ 
 ## 2. Reusing UserID as PK/FK on Customers and Admin (not a separate CustomerID/AdminID)
-
+ 
 Originally used separate auto-incrementing IDs (`CustomerID`, `AdminID`).
 Changed to reuse `UserID` directly so it's visually unambiguous, at the
 schema level, that these rows are the *same person* as a row in Users —
 not just related by name convention.
-
+ 
 **Practical consequence:** Customers and Admin are NOT IDENTITY columns.
 Insert order matters — a User row must be created first to generate the
 ID, then that same ID is used for the Customers or Admin insert.
-
+ 
 ## 3. OrderDetails composite primary key
-
+ 
 **Problem:** One order can contain many products, and one product can
 appear across many orders — a many-to-many relationship that a direct
 Orders↔Inventory link can't represent.
-
+ 
 **Chosen:** OrderDetails as a junction table, with a composite primary key
 of `(OrderID, ProductID)` rather than a standalone surrogate ID.
-
+ 
 **Why:** the combination of OrderID + ProductID is naturally unique — an
 inventory item should only appear once per order (repeat purchases within
 one order are represented by increasing `Quantity`, not by duplicate rows).
@@ -56,18 +114,19 @@ A composite PK enforces this as a database constraint, not just an
 application-level assumption. A surrogate key would have allowed duplicate
 (OrderID, ProductID) pairs unless a separate UNIQUE constraint was added
 to compensate.
-
+ 
 ## 4. PriceAtTimeOfOrder stored separately from Inventory.CurrentPrice
-
+ 
 If OrderDetails referenced `Inventory.CurrentPrice` directly, updating a
 product's price later would silently rewrite the value of historical
 orders. Storing `PriceAtTimeOfOrder` on OrderDetails locks in the price at
 the moment of purchase, independent of catalog price changes.
-
+ 
 ## 5. Project scope: single-vendor B2C retail
-
+ 
 Deliberately kept simple — no multi-vendor marketplace, no subscriptions,
 no digital-goods delivery tracking. The goal of this project was practicing
 core relational patterns (subtyping, M:M resolution, composite keys), not
 building out a full commerce platform. Those patterns would each need their
 own schema extensions if this were scoped up later.
+ 
