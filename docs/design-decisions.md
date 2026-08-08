@@ -1,62 +1,3 @@
-Claude finished the response
-
-Good call — hand-rolled auth matches your schema exactly as designed, and it's the more educational path anyway (ASP.NET Identity brings its own user/role table conventions that would fight with the subtype pattern you already built). Here's what "simplest and straightforward" actually looks like, broken into the pieces that matter:
-
-1. Hashing — never store or compare plain text passwords
-Use BCrypt.Net-Next (a NuGet package) rather than rolling your own hashing algorithm. It handles salting automatically, which is the part people get wrong when they hand-roll this from scratch.
-csharp
-
-// On signup:
-string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plainTextPassword);
-// Store hashedPassword in Users.HashedPassword
-
-// On login:
-bool isValid = BCrypt.Net.BCrypt.Verify(enteredPassword, storedHashFromDb);
-
-2. Login flow — check credentials, then figure out role
-
-    Look up the user by email in Users.
-    Verify the password with BCrypt.Verify.
-    If valid, check which subtype table has a matching UserID — Customers or Admin — that tells you the role (this is the self-enforcing design from earlier, paying off here).
-    Store the result in an ASP.NET session or cookie so subsequent requests know who's logged in.
-
-3. Session — simplest option for MVC
-HttpContext.Session is the lowest-friction choice: store UserID and Role in session after login, check Session["UserID"] != null in a base controller or action filter to gate access. No extra packages, no cookie-signing complexity — good fit for a learning project before you'd reach for something heavier like JWT.
-
-Want me to log this as the decision in docs/app-notes.md the way we did for Dapper, and sketch the actual Login controller action next?
-
-not yet I just want to update the folder for next step
-
-Got it — let's just log the decision so the docs stay in sync, then leave the actual controller code for next time.
-Log the auth decision in app-notes.md
-
-Logged. docs/app-notes.md now has the auth decision and plan written down, marked as not-yet-implemented so it's clear where you left off. Pull it into your synced folder and commit whenever you're ready — good stopping point for today.
-
-I cant see the files
-
-Ah, that makes sense — everything I've been editing lives in my own sandbox (/home/claude), which isn't visible to you at all. I should have surfaced the files properly instead of just editing them silently. Let me fix that now — I'll place the updated files where you can actually access and download them, without zipping.
-Ran a command, read a file
-
-All 7 files should now show up individually — the two updated docs (README.md, app-notes.md) plus the rest for completeness. Since they're separate files rather than a zip, you'll need to drop README.md and docs/app-notes.md into the matching spots in your local synced folder (overwriting the old versions), then commit through GitHub Desktop as usual.
-Readme
-Document · MD 
-App notes
-Document · MD 
-Design decisions
-Document · MD 
-Erd
-Document · MD 
-Schema
-Code · SQL 
-Seed data
-Code · SQL 
-Queries
-Code · SQL 
-Want to be notified when Claude responds?
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-Design decisions · MD
 # Design Decisions
  
 Notes on the reasoning behind key structural choices in this schema — useful
@@ -129,4 +70,4 @@ no digital-goods delivery tracking. The goal of this project was practicing
 core relational patterns (subtyping, M:M resolution, composite keys), not
 building out a full commerce platform. Those patterns would each need their
 own schema extensions if this were scoped up later.
- 
+
