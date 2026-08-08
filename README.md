@@ -1,4 +1,4 @@
-# E-Commerce CRUD Application
+# Onyx & Oak CRUD Application
 
 A full C# ASP.NET MVC CRUD application modeling a single-vendor B2C e-commerce backend, backed by SQL Server. Started as a database-design exercise (relational modeling: supertype/subtype patterns, many-to-many resolution via a junction table, composite keys) and is being built out into a complete web application on top of that schema.
 
